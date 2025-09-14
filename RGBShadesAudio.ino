@@ -72,11 +72,10 @@ functionList effectListAudio[] = {
                                   //rings,
                                   audioShadesOutline,
                                   audioStripes,
-                                  //audioCirc,
-                                  //drawVU,
-                                  //RGBpulse,
-                                  //audioPlasma,
-                                  //drawAnalyzer
+                                  audioShadesOutlineB,
+                                  audioStripesB,
+                                  mind,
+                                  mindAudio,
                                  };
 
 functionList effectListNoAudio[] = {

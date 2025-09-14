@@ -8,14 +8,14 @@
 #define RESETPIN 7
 
 // Smooth/average settings
-#define SPECTRUMSMOOTH 0.1
-#define PEAKDECAY 0.05
-#define NOISEFLOOR 65
+#define SPECTRUMSMOOTH 0.2
+#define PEAKDECAY 0.08
+#define NOISEFLOOR 75
 
 // AGC settings
-#define AGCSMOOTH 0.004
-#define GAINUPPERLIMIT 20.0
-#define GAINLOWERLIMIT 0.1
+#define AGCSMOOTH 0.008
+#define GAINUPPERLIMIT 18.0
+#define GAINLOWERLIMIT 0.08
 
 // Global variables
 unsigned int spectrumValue[7];  // holds raw adc values
@@ -92,7 +92,7 @@ void doAnalogs() {
 byte beatTriggered = 0;
 #define beatLevel 25.0
 #define beatDeadzone 35.0
-#define beatDelay 50
+#define beatDelay 30
 float lastBeatVal = 0;
 byte beatDetect() {
   static float beatAvg = 0;

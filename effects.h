@@ -534,7 +534,6 @@ void audioCirc() {
   
 }
 
-
 // RGB Plasma
 void audioSpin() {
 
@@ -603,6 +602,63 @@ void audioStripes() {
           if (brightLevel > 254) brightLevel = 254;
           linecolor = ColorFromPalette(currentPalette, audioLevel, brightLevel);
       leds[XY(x, 4-y)] = linecolor;
+    }
+  }
+}
+
+void audioStripesB() {
+  // startup tasks
+  if (effectInit == false) {
+    effectInit = true;
+    effectDelay = 20;
+    selectRandomAudioPalette();
+    fadeActive = 0;
+    audioActive = true;
+  }
+
+  CRGB linecolor;
+  int audioLevel;
+  int brightLevel;
+
+  // Updated frequency mapping for better visibility:
+  // y0 (top) = high freq (band 5)
+  // y1 = bass (band 1) 
+  // y2 (center) = low beat (band 0)
+  // y3 = bass (band 2)
+  // y4 (bottom) = highest freq (band 6)
+  
+  byte frequencyMap[5] = {5, 1, 0, 2, 5}; // Maps y position to spectrum band
+  
+  for (byte y = 0; y < 5; y++) {
+    audioLevel = spectrumPeaks[frequencyMap[y]] / 1.8;  // Note: removed +1 since band 6 is max
+    
+    // Special handling for different frequency ranges
+    if (y == 2) audioLevel /= 2;  // Low beat in center
+    if (y == 0 || y == 4) audioLevel *= 2.5;  // Boost high frequencies for visibility
+    
+    if (audioLevel > 239) audioLevel = 239;
+
+    // Left lens (x = 0 to 6)
+    for (byte x = 0; x < 7; x++) {
+      brightLevel = (audioLevel-(abs(3-x)*20)) * 2.0;  // Center at x=3 for left lens
+      if (brightLevel < 0) brightLevel = 0;
+      if (brightLevel > 254) brightLevel = 254;
+      linecolor = ColorFromPalette(currentPalette, audioLevel, brightLevel);
+      leds[XY(x, 4-y)] = linecolor;
+    }
+
+    // Right lens (x = 9 to 15) 
+    for (byte x = 9; x < kMatrixWidth; x++) {
+      brightLevel = (audioLevel-(abs(12-x)*20)) * 2.0;  // Center at x=12 for right lens
+      if (brightLevel < 0) brightLevel = 0;
+      if (brightLevel > 254) brightLevel = 254;
+      linecolor = ColorFromPalette(currentPalette, audioLevel, brightLevel);
+      leds[XY(x, 4-y)] = linecolor;
+    }
+
+    // Bridge area (x = 7 to 8) - keep dark or use minimal effect
+    for (byte x = 7; x <= 8; x++) {
+      leds[XY(x, 4-y)] = CRGB::Black;
     }
   }
 }
@@ -687,7 +743,7 @@ void audioShadesOutlineB() {
     effectInit = true;
     effectDelay = 15;
     FastLED.clear();
-    currentPalette = RainbowColors_p;
+    currentPalette = currentPalette = CRGBPalette16(CRGB::Black, CRGB::Crimson, CRGB::Red);
     fadeActive = 10;
     audioActive = true;
   }
@@ -726,6 +782,317 @@ void audioShadesOutlineB() {
   
 }
 
+void mind() {
+  // startup tasks
+  if (effectInit == false) {
+    effectInit = true;
+    effectDelay = 25;
+    audioActive = true;
+    fadeActive = 0;
+  }
+
+  static byte growthStage = 0;  // 0=off, 1=center, 2=3x3, 3=5x5, 4=all
+  static unsigned long lastStageChange = 0;
+  static byte stageHoldTime = 100; // ms to hold each stage
+  
+  // Calculate bass level for growth trigger
+  float bassLevel = (spectrumDecay[0] + spectrumDecay[1] + spectrumDecay[2]) / 3.0;
+  
+  // Beat detection for stage progression
+  static boolean lastBeatState = false;
+  boolean currentBeat = beatDetect();
+  boolean beatTriggered = (currentBeat && !lastBeatState);
+  lastBeatState = currentBeat;
+  
+  // Define lens centers
+  byte leftCenterX = 3, rightCenterX = 12, centerY = 2;
+  
+  // Clear display
+  FastLED.clear();
+  
+  // Determine color based on stage and bass level
+  CRGB stageColor;
+  switch(growthStage) {
+    case 0: // Off/Black
+      stageColor = CRGB::Black;
+      break;
+    case 1: // Center pixel - Crimson
+      stageColor = CRGB::Crimson;
+      break;
+    case 2: // 3x3 - Crimson to Red transition
+      if (bassLevel > 150) {
+        stageColor = CRGB::Red;
+      } else {
+        stageColor = CRGB::Crimson;
+      }
+      break;
+    case 3: // 5x5 - Red
+      stageColor = CRGB::Red;
+      break;
+    case 4: // All on - Bright Red
+      stageColor = CRGB::Red;
+      stageColor.nscale8(255); // Full brightness
+      break;
+    default:
+      stageColor = CRGB::Black;
+      break;
+  }
+  
+  // Scale brightness based on bass level
+  byte brightness = map(bassLevel, 0, 400, 50, 255);
+  if (brightness > 255) brightness = 255;
+  if (brightness < 50) brightness = 50;
+  stageColor.nscale8(brightness);
+  
+  // Draw current stage pattern
+  switch(growthStage) {
+    case 0: // Off - do nothing
+      break;
+      
+    case 1: // Center pixel
+      leds[XY(leftCenterX, centerY)] = stageColor;
+      leds[XY(rightCenterX, centerY)] = stageColor;
+      break;
+      
+    case 2: // 3x3 pattern
+      for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+          // Left lens
+          if (leftCenterX + dx >= 0 && leftCenterX + dx < 7 && 
+              centerY + dy >= 0 && centerY + dy < 5) {
+            leds[XY(leftCenterX + dx, centerY + dy)] = stageColor;
+          }
+          // Right lens
+          if (rightCenterX + dx >= 9 && rightCenterX + dx < 16 && 
+              centerY + dy >= 0 && centerY + dy < 5) {
+            leds[XY(rightCenterX + dx, centerY + dy)] = stageColor;
+          }
+        }
+      }
+      break;
+      
+    case 3: // 5x5 pattern
+      for (int dx = -2; dx <= 2; dx++) {
+        for (int dy = -2; dy <= 2; dy++) {
+          // Left lens
+          if (leftCenterX + dx >= 0 && leftCenterX + dx < 7 && 
+              centerY + dy >= 0 && centerY + dy < 5) {
+            leds[XY(leftCenterX + dx, centerY + dy)] = stageColor;
+          }
+          // Right lens
+          if (rightCenterX + dx >= 9 && rightCenterX + dx < 16 && 
+              centerY + dy >= 0 && centerY + dy < 5) {
+            leds[XY(rightCenterX + dx, centerY + dy)] = stageColor;
+          }
+        }
+      }
+      break;
+      
+    case 4: // All on (full lenses)
+      for (byte x = 0; x < 7; x++) {
+        for (byte y = 0; y < 5; y++) {
+          leds[XY(x, y)] = stageColor;
+        }
+      }
+      for (byte x = 9; x < 16; x++) {
+        for (byte y = 0; y < 5; y++) {
+          leds[XY(x, y)] = stageColor;
+        }
+      }
+      break;
+  }
+  
+  // Stage progression logic
+  if (beatTriggered && currentMillis - lastStageChange > stageHoldTime) {
+    growthStage++;
+    if (growthStage > 4) {
+      growthStage = 0; // Reset to off/black
+    }
+    lastStageChange = currentMillis;
+    
+    // Adjust hold time based on bass level for dynamic timing
+    stageHoldTime = map(bassLevel, 0, 400, 200, 50);
+  }
+  
+  // Auto-reset if no beat for a while (return to black)
+  if (currentMillis - lastStageChange > 2000) {
+    growthStage = 0;
+    lastStageChange = currentMillis;
+  }
+}
+
+void mindAudio() {
+  // startup tasks
+  if (effectInit == false) {
+    effectInit = true;
+    effectDelay = 20;
+    audioActive = true;
+    fadeActive = 0;
+  }
+
+  // Static variables for smoothing
+  static float smoothedIntensity = 0;
+  static byte lastExpansion = 0;
+  static unsigned long lastExpansionChange = 0;
+  static byte targetExpansion = 0;
+  
+  // Calculate overall audio intensity
+  float totalIntensity = 0;
+  for (byte i = 0; i < 7; i++) {
+    totalIntensity += spectrumDecay[i];
+  }
+  totalIntensity = totalIntensity / 7.0;
+  
+  // Smooth the intensity with exponential averaging
+  smoothedIntensity = smoothedIntensity * 0.85 + totalIntensity * 0.15;
+  
+  // Define lens centers
+  byte leftCenterX = 3, rightCenterX = 12, centerY = 2;
+  
+  // Clear display
+  FastLED.clear();
+  
+  // Beat detection for intensity boost (no white)
+  static byte beatBoost = 0;
+  if (beatDetect()) {
+    beatBoost = 80; // Reduced from 100 for smoother effect
+  }
+  
+  // Fade beat boost more gradually
+  if (beatBoost > 0) {
+    beatBoost -= 3; // Slower fade (was 6)
+  }
+  
+  // Determine color and brightness based on smoothed intensity
+  CRGB ringColor;
+  byte baseBrightness = map(smoothedIntensity, 0, 400, 0, 200);
+  if (baseBrightness > 200) baseBrightness = 200;
+  
+  // Add beat boost to brightness
+  byte totalBrightness = baseBrightness + beatBoost;
+  if (totalBrightness > 255) totalBrightness = 255;
+  
+  // Color progression: Off -> Dark Red -> Red -> Crimson
+  if (smoothedIntensity < 30) {
+    ringColor = CRGB::Black; // Off
+  } else if (smoothedIntensity < 200) {
+    // Dark Red
+    ringColor = CRGB(totalBrightness/2, 0, 0); // Pure red, dimmed
+  } else if (smoothedIntensity < 300) {
+    // Red
+    ringColor = CRGB(totalBrightness, 0, 0); // Pure red
+  } else {
+    // Crimson (red with slight blue tint)
+    ringColor = CRGB(totalBrightness, 0, totalBrightness/8); // Mostly red with tiny blue
+  }
+  
+  // Calculate target expansion based on smoothed intensity + beat boost
+  targetExpansion = map(smoothedIntensity + beatBoost, 0, 500, 0, 4);
+  if (targetExpansion > 4) targetExpansion = 4;
+  
+  // Smooth expansion changes with delay
+  byte currentExpansion = lastExpansion;
+  if (targetExpansion != lastExpansion) {
+    // Only change expansion if enough time has passed (prevents jitter)
+    if (currentMillis - lastExpansionChange > 50) { // 50ms delay between changes
+      if (targetExpansion > lastExpansion) {
+        currentExpansion = lastExpansion + 1; // Grow one ring at a time
+      } else {
+        currentExpansion = lastExpansion - 1; // Shrink one ring at a time
+      }
+      lastExpansion = currentExpansion;
+      lastExpansionChange = currentMillis;
+    }
+  }
+  
+  // Add fade effect for smooth transitions
+  static byte fadeAmount = 0;
+  if (currentExpansion != targetExpansion) {
+    fadeAmount = 50; // Partial brightness during transitions
+  } else {
+    fadeAmount = 0; // Full brightness when stable
+  }
+  
+  // Apply fade to ring color
+  CRGB fadedColor = ringColor;
+  if (fadeAmount > 0) {
+    fadedColor.nscale8(255 - fadeAmount);
+    fadeAmount -= 2; // Gradually remove fade
+    if (fadeAmount < 0) fadeAmount = 0;
+  }
+  
+  // Ring 1: Center pixel (always on if any audio)
+  if (currentExpansion >= 1) {
+    leds[XY(leftCenterX, centerY)] = fadedColor;
+    leds[XY(rightCenterX, centerY)] = fadedColor;
+  }
+  
+  // Ring 2: 3x3 pattern
+  if (currentExpansion >= 2) {
+    for (int dx = -1; dx <= 1; dx++) {
+      for (int dy = -1; dy <= 1; dy++) {
+        // Skip center pixel (already handled above)
+        if (dx == 0 && dy == 0) continue;
+        
+        // Left lens
+        if (leftCenterX + dx >= 0 && leftCenterX + dx < 7 && 
+            centerY + dy >= 0 && centerY + dy < 5) {
+          leds[XY(leftCenterX + dx, centerY + dy)] = fadedColor;
+        }
+        // Right lens
+        if (rightCenterX + dx >= 9 && rightCenterX + dx < 16 && 
+            centerY + dy >= 0 && centerY + dy < 5) {
+          leds[XY(rightCenterX + dx, centerY + dy)] = fadedColor;
+        }
+      }
+    }
+  }
+  
+  // Ring 3: 5x5 outline
+  if (currentExpansion >= 3) {
+    for (int dx = -2; dx <= 2; dx++) {
+      for (int dy = -2; dy <= 2; dy++) {
+        // Only draw outline - skip inner 3x3 area
+        if (abs(dx) < 2 && abs(dy) < 2) continue;
+        
+        // Left lens
+        if (leftCenterX + dx >= 0 && leftCenterX + dx < 7 && 
+            centerY + dy >= 0 && centerY + dy < 5) {
+          leds[XY(leftCenterX + dx, centerY + dy)] = fadedColor;
+        }
+        // Right lens
+        if (rightCenterX + dx >= 9 && rightCenterX + dx < 16 && 
+            centerY + dy >= 0 && centerY + dy < 5) {
+          leds[XY(rightCenterX + dx, centerY + dy)] = fadedColor;
+        }
+      }
+    }
+  }
+  
+  // Ring 4: Full lens fill
+  if (currentExpansion >= 4) {
+    for (byte x = 0; x < 7; x++) {
+      for (byte y = 0; y < 5; y++) {
+        // Only fill areas not already covered by inner rings
+        int dx = x - leftCenterX;
+        int dy = y - centerY;
+        if (abs(dx) > 1 || abs(dy) > 1) {
+          leds[XY(x, y)] = fadedColor;
+        }
+      }
+    }
+    for (byte x = 9; x < 16; x++) {
+      for (byte y = 0; y < 5; y++) {
+        // Only fill areas not already covered by inner rings
+        int dx = x - rightCenterX;
+        int dy = y - centerY;
+        if (abs(dx) > 1 || abs(dy) > 1) {
+          leds[XY(x, y)] = fadedColor;
+        }
+      }
+    }
+  }
+}
 
 //hearts that start small on the bottom and get larger as they grow upward
 const uint8_t SmHeart[] = {46, 48, 53, 55, 60, 65};
@@ -899,6 +1266,3 @@ void noiseFlyer() {
 
   
 }
-
-
-

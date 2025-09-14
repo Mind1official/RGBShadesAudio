@@ -66,7 +66,7 @@ void scrollArray(byte scrollDir) {
 
 // Pick a random palette from a list
 void selectRandomPalette() {
-  currentPalette = CRGBPalette16(CRGB::Red, CRGB::Crimson, CRGB::Black);
+  currentPalette = CRGBPalette16(CRGB::Black, CRGB::Crimson, CRGB::Red);
 
 /*  switch(random8(8)) {
     case 0:
@@ -102,7 +102,7 @@ void selectRandomPalette() {
 
 // Pick a random palette from a list
 void selectRandomAudioPalette() {
-  currentPalette = CRGBPalette16(CRGB::Red, CRGB::Crimson, CRGB::Black);
+  currentPalette = CRGBPalette16(CRGB::Black, CRGB::Crimson, CRGB::Red);
 
 /*  switch(random8(8)) {
     case 0:
@@ -137,7 +137,7 @@ void selectRandomAudioPalette() {
 }
 
 void selectRandomNoisePalette() {
-  currentPalette = CRGBPalette16(CRGB::Red, CRGB::Crimson, CRGB::Black);
+  currentPalette = CRGBPalette16(CRGB::Black, CRGB::Crimson, CRGB::Red);
 
 /*  switch(random8(4)) {
     case 0:
