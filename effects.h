@@ -678,6 +678,54 @@ void audioShadesOutline() {
   
 }
 
+void audioShadesOutlineB() {
+  
+  static float x = 0;
+  
+  //startup tasks
+  if (effectInit == false) {
+    effectInit = true;
+    effectDelay = 15;
+    FastLED.clear();
+    currentPalette = RainbowColors_p;
+    fadeActive = 10;
+    audioActive = true;
+  }
+
+  static uint8_t beatcount = 0;
+
+  int brightness = (spectrumDecay[0] + spectrumDecay[1]);
+  if (brightness > 255) brightness = 255;
+
+  CRGB pixelColor = CHSV(cycleHue, 255, brightness);
+  
+  for (byte k = 0; k < 4; k++) {
+    leds[OutlineMap(x+(OUTLINESIZE/4-1)*k)] += pixelColor;
+  }
+
+  float xincr = (spectrumDecay[0] + spectrumDecay[1]) / 600.0;
+  if (xincr > 1.0) xincr = 1.0;
+  if (xincr < 0.1) xincr = 0.1;
+
+
+
+
+  if (beatDetect()) {
+    beatcount++;
+    if (beatcount >= 32 ) beatcount = 0;
+  }
+
+  if (beatcount < 16 ) {
+    x += xincr;
+  } else {
+    x -= xincr;
+  }
+  
+  if (x > (OUTLINESIZE-1)) x = 0;
+  if (x < 0) x = OUTLINESIZE - 1;
+  
+}
+
 
 //hearts that start small on the bottom and get larger as they grow upward
 const uint8_t SmHeart[] = {46, 48, 53, 55, 60, 65};
