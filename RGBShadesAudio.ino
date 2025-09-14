@@ -68,23 +68,23 @@
 
 // list of functions that will be displayed
 functionList effectListAudio[] = {
-                                  noiseFlyer,
-                                  rings,
+                                  //noiseFlyer,
+                                  //rings,
                                   audioShadesOutline,
                                   audioStripes,
-                                  audioCirc,
-                                  drawVU,
+                                  //audioCirc,
+                                  //drawVU,
                                   //RGBpulse,
-                                  audioPlasma,
-                                  drawAnalyzer
+                                  //audioPlasma,
+                                  //drawAnalyzer
                                  };
 
 functionList effectListNoAudio[] = {
                                     shadesOutline,
                                     threeSine,
                                     //drawVU,
-                                    threeDee,
-                                    hearts,
+                                    //threeDee,
+                                    //hearts,
                                     //scrollTextZero,
                                     plasma,
                                     //RGBpulse,
@@ -207,8 +207,3 @@ void loop()
   FastLED.show(); // send the contents of the led memory to the LEDs
 
 }
-
-
-
-
-
